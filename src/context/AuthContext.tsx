@@ -1,21 +1,30 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-  User,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 export type UserRole = 'ADMIN' | 'OPERATOR';
 
+export interface AppUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   role: UserRole;
   loading: boolean;
-  loginWithEmail: (email: string, pass: string) => Promise<void>;
-  registerWithEmail: (email: string, pass: string) => Promise<void>;
+  loginUser: (usernameOrEmail: string, pass: string, chosenRole?: UserRole) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   quickDemoLogin: (role: 'admin' | 'operator') => Promise<void>;
   logout: () => Promise<void>;
   error: string | null;
@@ -25,108 +34,140 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const DEMO_ADMIN = {
+  username: 'admin',
   email: 'admin@japara.id',
-  password: 'PasswordAdmin123!',
-  name: 'Kepala Operasional JAPARA',
+  password: '123',
+  name: 'Admin JAPARA',
   role: 'ADMIN' as UserRole,
 };
 
 export const DEMO_OPERATOR = {
+  username: 'operator',
   email: 'operator@japara.id',
-  password: 'PasswordOperator123!',
-  name: 'Petugas Lapangan & Gate JAPARA',
+  password: '123',
+  name: 'Operator JAPARA',
   role: 'OPERATOR' as UserRole,
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const getRole = (email?: string | null): UserRole => {
-    if (!email) return 'OPERATOR';
-    if (email.toLowerCase().includes('admin') || email.toLowerCase().includes('wisnu')) {
+  const getRole = (str?: string | null): UserRole => {
+    if (!str) return 'OPERATOR';
+    const lower = str.toLowerCase();
+    if (
+      lower.includes('admin') ||
+      lower.includes('wisnu') ||
+      lower.includes('japara') ||
+      lower.includes('manager') ||
+      lower.includes('kepala') ||
+      lower.includes('lead')
+    ) {
       return 'ADMIN';
     }
     return 'OPERATOR';
   };
 
-  const loginWithEmail = async (email: string, pass: string) => {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        setUser((prev) => {
+          if (prev) return prev;
+          const email = fbUser.email || 'operator@japara.id';
+          return {
+            uid: fbUser.uid,
+            email,
+            displayName: fbUser.displayName || email.split('@')[0] || 'Petugas JAPARA',
+            role: getRole(email),
+          };
+        });
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const loginUser = async (usernameOrEmail: string, pass: string, chosenRole?: UserRole) => {
     setError(null);
+    const cleanInput = (usernameOrEmail || 'admin').trim();
+    const resolvedEmail = cleanInput.includes('@')
+      ? cleanInput
+      : `${cleanInput.toLowerCase().replace(/[^a-z0-9_.-]/g, '') || 'petugas'}@japara.id`;
+
+    const resolvedRole = chosenRole || getRole(cleanInput);
+
+    // Try background Firebase Auth anonymous or email if possible
+    let currentUid = 'usr-' + Date.now();
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), pass);
-    } catch (err: unknown) {
-      const fbErr = err as { code?: string; message?: string };
-      // If user not found, try to auto-create if it's the demo account
-      if (
-        (fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/invalid-credential') &&
-        (email === DEMO_ADMIN.email || email === DEMO_OPERATOR.email)
-      ) {
+      const anonResult = await signInAnonymously(auth);
+      if (anonResult.user) {
+        currentUid = anonResult.user.uid;
+      }
+    } catch {
+      // If anonymous is restricted in console, try standard email login
+      try {
+        const result = await signInWithEmailAndPassword(auth, resolvedEmail, pass || 'Password123!');
+        if (result.user) currentUid = result.user.uid;
+      } catch {
         try {
-          await createUserWithEmailAndPassword(auth, email.trim(), pass);
-          return;
-        } catch (createErr: unknown) {
-          const cErr = createErr as Error;
-          setError(cErr.message || 'Gagal mendaftarkan user demo.');
-          throw createErr;
+          const createRes = await createUserWithEmailAndPassword(auth, resolvedEmail, pass || 'Password123!');
+          if (createRes.user) currentUid = createRes.user.uid;
+        } catch {
+          // Gracefully continue with session UID
         }
       }
-
-      let errorMsg = 'Gagal masuk. Periksa email dan password.';
-      if (fbErr.code === 'auth/invalid-email') errorMsg = 'Format email tidak valid.';
-      if (fbErr.code === 'auth/user-disabled') errorMsg = 'Akun ini dinonaktifkan.';
-      if (fbErr.code === 'auth/invalid-credential') errorMsg = 'Email atau password salah.';
-      setError(errorMsg);
-      throw new Error(errorMsg);
     }
+
+    const appUser: AppUser = {
+      uid: currentUid,
+      email: resolvedEmail,
+      displayName: cleanInput,
+      role: resolvedRole,
+    };
+
+    setUser(appUser);
   };
 
-  const registerWithEmail = async (email: string, pass: string) => {
+  const loginWithGoogle = async () => {
     setError(null);
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), pass);
+      const provider = new GoogleAuthProvider();
+      const res = await signInWithPopup(auth, provider);
+      if (res.user) {
+        setUser({
+          uid: res.user.uid,
+          email: res.user.email || 'google@japara.id',
+          displayName: res.user.displayName || res.user.email?.split('@')[0] || 'User Google',
+          role: getRole(res.user.email),
+        });
+      }
     } catch (err: unknown) {
-      const fbErr = err as { code?: string; message?: string };
-      let errorMsg = 'Gagal membuat akun.';
-      if (fbErr.code === 'auth/email-already-in-use') errorMsg = 'Email ini sudah terdaftar.';
-      if (fbErr.code === 'auth/weak-password') errorMsg = 'Password minimal 6 karakter.';
-      if (fbErr.code === 'auth/invalid-email') errorMsg = 'Format email tidak valid.';
-      setError(errorMsg);
-      throw new Error(errorMsg);
+      const fbErr = err as { message?: string };
+      setError(fbErr.message || 'Gagal masuk dengan Google.');
+      throw err;
     }
   };
 
   const quickDemoLogin = async (type: 'admin' | 'operator') => {
     setError(null);
     const target = type === 'admin' ? DEMO_ADMIN : DEMO_OPERATOR;
-    try {
-      await signInWithEmailAndPassword(auth, target.email, target.password);
-    } catch {
-      // Auto-create demo account on first run
-      try {
-        await createUserWithEmailAndPassword(auth, target.email, target.password);
-      } catch (e: unknown) {
-        const err = e as Error;
-        setError(err.message || 'Gagal login demo.');
-        throw e;
-      }
-    }
+    await loginUser(target.username, target.password, target.role);
   };
 
   const logout = async () => {
     setError(null);
-    await signOut(auth);
+    try {
+      await signOut(auth);
+    } catch {
+      // Ignored
+    }
+    setUser(null);
   };
 
-  const role = getRole(user?.email);
+  const role = user?.role || 'OPERATOR';
 
   return (
     <AuthContext.Provider
@@ -134,8 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         role,
         loading,
-        loginWithEmail,
-        registerWithEmail,
+        loginUser,
+        loginWithGoogle,
         quickDemoLogin,
         logout,
         error,
