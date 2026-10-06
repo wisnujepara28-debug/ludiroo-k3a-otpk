@@ -1,0 +1,6 @@
+{
+  "name": "PORTA - Operasional Terminal Peti Kemas",
+  "description": "Sistem Manajemen Operasional Terminal Peti Kemas (Container Terminal Operating System) terintegrasi Firebase Firestore real-time.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

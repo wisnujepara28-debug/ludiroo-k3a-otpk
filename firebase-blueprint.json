@@ -1,0 +1,277 @@
+{
+  "entities": {
+    "containers": {
+      "title": "Container",
+      "description": "Container / Peti Kemas master data in terminal operations",
+      "type": "object",
+      "properties": {
+        "containerNumber": {
+          "type": "string",
+          "description": "ISO 6346 Container Number (4 uppercase letters + 7 numbers)",
+          "pattern": "^[A-Z]{4}[0-9]{7}$",
+          "maxLength": 11,
+          "minLength": 11
+        },
+        "isoType": {
+          "type": "string",
+          "description": "ISO container equipment type",
+          "enum": ["20GP", "40GP", "40HC", "20RF", "40RF", "20OT", "40FR"]
+        },
+        "size": {
+          "type": "number",
+          "description": "Container length in feet (20 or 40)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Terminal operational status",
+          "enum": ["YARD", "GATE_IN", "GATE_OUT", "LOADED", "DISCHARGED"]
+        },
+        "category": {
+          "type": "string",
+          "description": "Trade flow category",
+          "enum": ["IMPORT", "EXPORT", "TRANSSHIPMENT", "DOMESTIC"]
+        },
+        "loadStatus": {
+          "type": "string",
+          "description": "Load condition",
+          "enum": ["FCL", "LCL", "EMPTY"]
+        },
+        "grossWeight": {
+          "type": "number",
+          "description": "Gross weight in kilograms (1000 - 35000 kg)"
+        },
+        "tareWeight": {
+          "type": "number",
+          "description": "Tare weight in kilograms"
+        },
+        "sealNumber": {
+          "type": "string",
+          "description": "Security bolt seal number",
+          "maxLength": 30
+        },
+        "block": {
+          "type": "string",
+          "description": "Yard stacking block identifier",
+          "maxLength": 5
+        },
+        "bay": {
+          "type": "number",
+          "description": "Yard bay coordinate"
+        },
+        "row": {
+          "type": "number",
+          "description": "Yard row coordinate"
+        },
+        "tier": {
+          "type": "number",
+          "description": "Yard tier stacking height"
+        },
+        "vesselName": {
+          "type": "string",
+          "description": "Associated vessel name",
+          "maxLength": 100
+        },
+        "voyageNumber": {
+          "type": "string",
+          "description": "Voyage number",
+          "maxLength": 50
+        },
+        "shippingLine": {
+          "type": "string",
+          "description": "Shipping line / Carrier operator",
+          "maxLength": 100
+        },
+        "consignee": {
+          "type": "string",
+          "description": "Receiving consignee company name",
+          "maxLength": 150
+        },
+        "shipper": {
+          "type": "string",
+          "description": "Shipping company name",
+          "maxLength": 150
+        },
+        "customsStatus": {
+          "type": "string",
+          "description": "Customs clearance status (SPPB / Bea Cukai)",
+          "enum": ["CLEARED", "INSPECTION", "HOLD", "PENDING"]
+        },
+        "isReefer": {
+          "type": "boolean",
+          "description": "Whether container is a refrigerated reefer"
+        },
+        "reeferTemp": {
+          "type": "number",
+          "description": "Set temperature in Celsius for reefer containers"
+        },
+        "reeferPlugStatus": {
+          "type": "boolean",
+          "description": "Power plug connection status for reefer"
+        },
+        "damaged": {
+          "type": "boolean",
+          "description": "Physical inspection damage indicator"
+        },
+        "damageNotes": {
+          "type": "string",
+          "description": "Physical damage inspection notes",
+          "maxLength": 300
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Email or ID of operator who modified the container",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 50
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update",
+          "maxLength": 50
+        }
+      },
+      "required": ["containerNumber", "isoType", "size", "status", "category", "loadStatus", "grossWeight", "block", "bay", "row", "tier", "shippingLine"]
+    },
+    "vessels": {
+      "title": "Vessel",
+      "description": "Vessel berth schedule and stevedoring operations",
+      "type": "object",
+      "properties": {
+        "vesselName": {
+          "type": "string",
+          "description": "Vessel name",
+          "maxLength": 100
+        },
+        "voyageIn": {
+          "type": "string",
+          "description": "Inbound voyage code",
+          "maxLength": 50
+        },
+        "voyageOut": {
+          "type": "string",
+          "description": "Outbound voyage code",
+          "maxLength": 50
+        },
+        "shippingLine": {
+          "type": "string",
+          "description": "Operator line",
+          "maxLength": 100
+        },
+        "berthNumber": {
+          "type": "string",
+          "description": "Allocated dock/berth (e.g. Berth 01, 02)",
+          "maxLength": 20
+        },
+        "eta": {
+          "type": "string",
+          "description": "Estimated Time of Arrival ISO timestamp",
+          "maxLength": 50
+        },
+        "etd": {
+          "type": "string",
+          "description": "Estimated Time of Departure ISO timestamp",
+          "maxLength": 50
+        },
+        "status": {
+          "type": "string",
+          "description": "Berth status",
+          "enum": ["SCHEDULED", "BERTHED", "WORKING", "COMPLETED", "DEPARTED"]
+        },
+        "totalTeus": {
+          "type": "number",
+          "description": "Total container quota in TEUs"
+        },
+        "completedTeus": {
+          "type": "number",
+          "description": "Loaded/Discharged TEUs so far"
+        },
+        "craneAssigned": {
+          "type": "string",
+          "description": "Quay Crane code assigned (e.g. QC-01, QC-02)",
+          "maxLength": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 50
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of update",
+          "maxLength": 50
+        }
+      },
+      "required": ["vesselName", "voyageIn", "shippingLine", "berthNumber", "status"]
+    },
+    "gateTransactions": {
+      "title": "GateTransaction",
+      "description": "Gate In / Gate Out gate inspection and dispatch logs",
+      "type": "object",
+      "properties": {
+        "truckNumber": {
+          "type": "string",
+          "description": "Truck license plate",
+          "maxLength": 20
+        },
+        "driverName": {
+          "type": "string",
+          "description": "Driver full name",
+          "maxLength": 100
+        },
+        "containerNumber": {
+          "type": "string",
+          "description": "Associated container number",
+          "maxLength": 15
+        },
+        "transactionType": {
+          "type": "string",
+          "description": "Gate event type",
+          "enum": ["GATE_IN_RECEIVING", "GATE_IN_DELIVERY", "GATE_OUT_RECEIVING", "GATE_OUT_DELIVERY"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Gate inspection status",
+          "enum": ["INSPECTED", "WAITING", "APPROVED", "REJECTED"]
+        },
+        "gateLane": {
+          "type": "string",
+          "description": "Gate lane e.g. Lane 01, Lane 02",
+          "maxLength": 20
+        },
+        "notes": {
+          "type": "string",
+          "description": "Inspection remarks",
+          "maxLength": 250
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Gate entry timestamp",
+          "maxLength": 50
+        },
+        "operatorEmail": {
+          "type": "string",
+          "description": "Gate operator email",
+          "maxLength": 100
+        }
+      },
+      "required": ["truckNumber", "driverName", "transactionType", "status", "gateLane"]
+    }
+  },
+  "firestore": {
+    "/containers/{containerId}": {
+      "schema": "containers",
+      "description": "Collection of terminal container inventory and operational status"
+    },
+    "/vessels/{vesselId}": {
+      "schema": "vessels",
+      "description": "Collection of vessel schedules, berth allocations, and stevedoring progress"
+    },
+    "/gateTransactions/{gateId}": {
+      "schema": "gateTransactions",
+      "description": "Collection of gate-in and gate-out truck transactions"
+    }
+  }
+}

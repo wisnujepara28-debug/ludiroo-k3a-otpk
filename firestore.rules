@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Containers collection (Peti Kemas)
+    match /containers/{containerId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(containerId)
+        && request.resource.data.containerNumber is string
+        && request.resource.data.containerNumber.size() <= 20
+        && request.resource.data.grossWeight is number
+        && request.resource.data.size is number;
+      allow update: if isSignedIn()
+        && isValidId(containerId)
+        && request.resource.data.containerNumber is string
+        && request.resource.data.grossWeight is number;
+      allow delete: if isSignedIn() && isValidId(containerId);
+    }
+
+    // Vessels collection (Jadwal Sandar Kapal)
+    match /vessels/{vesselId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(vesselId)
+        && request.resource.data.vesselName is string
+        && request.resource.data.vesselName.size() <= 150;
+      allow update: if isSignedIn()
+        && isValidId(vesselId);
+      allow delete: if isSignedIn() && isValidId(vesselId);
+    }
+
+    // Gate transactions collection (Pemeriksaan Gerbang Truck)
+    match /gateTransactions/{gateId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(gateId)
+        && request.resource.data.truckNumber is string
+        && request.resource.data.truckNumber.size() <= 50;
+      allow update: if isSignedIn() && isValidId(gateId);
+      allow delete: if isSignedIn() && isValidId(gateId);
+    }
+  }
+}
